@@ -113,7 +113,10 @@ async function confirmArchiveModule() {
 
   const targetId = archiveTargetId;
   closeArchiveModal();
-  if (typeof updateModuleStatusInDb === 'function') await updateModuleStatusInDb(targetId, 'Archived');
+
+  if (typeof updateModuleStatusInDb === 'function') {
+    await updateModuleStatusInDb(targetId, 'Archived');
+  }
 }
 
 async function toggleModuleStatus(id) {

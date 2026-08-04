@@ -36,93 +36,11 @@ async function fetchPermissionsData() {
       const dbPermissions = Array.isArray(result.permissions) ? result.permissions : [];
       const dbRolePermissions = Array.isArray(result.role_permissions) ? result.role_permissions : [];
 
-      // Read custom modules from localStorage
-      let customModules = [];
-      try {
-        const raw = localStorage.getItem('civentral_custom_modules');
-        customModules = raw ? JSON.parse(raw) : [];
-      } catch (e) {
-        console.error('Error reading civentral_custom_modules:', e);
-      }
-
-      // Merge dbModules with customModules
-      const allModulesMap = new Map();
-      dbModules.forEach(m => {
-        if (!m) return;
-        const mKey = String(m.module_id || m.id);
-        allModulesMap.set(mKey, m);
-      });
-
-      customModules.forEach(cm => {
-        if (!cm || !cm.name) return;
-        const key = String(cm.id || cm.module_id);
-        const nameLower = cm.name.trim().toLowerCase();
-        
-        let foundKey = null;
-        for (let [k, existing] of allModulesMap.entries()) {
-          if (!existing) continue;
-          if (k === key || (existing.module_name || existing.name || '').trim().toLowerCase() === nameLower) {
-            foundKey = k;
-            break;
-          }
-        }
-
-        if (foundKey) {
-          allModulesMap.set(foundKey, {
-            ...allModulesMap.get(foundKey),
-            module_name: cm.name,
-            description: cm.desc || cm.description || '',
-            status: cm.status || 'Active'
-          });
-        } else {
-          allModulesMap.set(key, {
-            module_id: cm.id,
-            module_name: cm.name,
-            description: cm.desc || cm.description || '',
-            status: cm.status || 'Active',
-            is_custom: true
-          });
-        }
-      });
-
-      // Read custom resources from localStorage
-      let customResources = [];
-      try {
-        const rawRes = localStorage.getItem('civentral_custom_resources');
-        customResources = rawRes ? JSON.parse(rawRes) : [];
-      } catch (e) {
-        console.error('Error reading civentral_custom_resources:', e);
-      }
-
-      // Merge dbResources with customResources
-      const allResourcesMap = new Map();
-      dbResources.forEach(r => {
-        if (!r) return;
-        allResourcesMap.set(String(r.resource_id || r.id), r);
-      });
-
-      customResources.forEach(cr => {
-        if (!cr || !cr.name) return;
-        const key = String(cr.id || cr.resource_id);
-        if (!allResourcesMap.has(key)) {
-          allResourcesMap.set(key, {
-            resource_id: cr.id,
-            module_id: cr.module_id,
-            resource_name: cr.name,
-            description: cr.desc || '',
-            resource_route: cr.route || '',
-            is_custom: true
-          });
-        }
-      });
-
-      const mergedDbResources = Array.from(allResourcesMap.values());
-
       // Build modulesData with nested resources
-      modulesData = Array.from(allModulesMap.values()).map(m => {
+      modulesData = dbModules.map(m => {
         if (!m) return null;
         const mId = m.module_id || m.id;
-        let resList = mergedDbResources
+        let resList = dbResources
           .filter(r => r && String(r.module_id) === String(mId))
           .map(r => ({
             id: r.resource_id || r.id,

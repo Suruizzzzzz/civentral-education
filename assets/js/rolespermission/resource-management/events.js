@@ -72,10 +72,6 @@ async function handleSaveResource(event) {
       updated_at: nowFormatted
     };
 
-    if (typeof saveLocalCustomResource === 'function') {
-      saveLocalCustomResource(resObj);
-    }
-
     const cleanName = name.toLowerCase();
     const existingIndex = systemResources.findIndex(r => String(r.id) === String(resId) || (r.name || '').trim().toLowerCase() === cleanName);
     if (existingIndex >= 0) {

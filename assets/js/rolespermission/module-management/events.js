@@ -80,10 +80,6 @@ async function handleSaveModule(event) {
         systemModules.unshift(modObj);
       }
 
-      if (typeof saveLocalCustomModule === 'function') {
-        saveLocalCustomModule(modObj);
-      }
-
       // Clear search filter so newly created/edited module is not hidden by query
       const searchInput = document.getElementById('moduleSearchInput');
       if (searchInput) searchInput.value = '';
