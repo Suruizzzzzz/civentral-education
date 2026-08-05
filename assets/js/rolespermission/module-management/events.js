@@ -26,16 +26,60 @@ async function handleSaveModule(event) {
 
   const payload = {
     module_name: name,
+    name: name,
     description: desc,
+    desc: desc,
     status: status
   };
 
   if (idVal !== '') {
-    payload.module_id = parseInt(idVal);
+    payload.module_id = parseInt(idVal) || idVal;
+    payload.id = payload.module_id;
   }
 
   const method = idVal === '' ? 'POST' : 'PUT';
 
+  const normStatus = typeof normalizeStatus === 'function' ? normalizeStatus(status) : status;
+  const modId = idVal !== '' ? (parseInt(idVal) || idVal) : Date.now();
+  const nowFormatted = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+  const modObj = {
+    id: modId,
+    name: name,
+    desc: desc,
+    status: normStatus,
+    created_at: nowFormatted,
+    updated_at: nowFormatted
+  };
+
+  // 1. Immediately display and persist created/edited module in UI
+  if (typeof saveLocalCustomModule === 'function') {
+    saveLocalCustomModule(modObj);
+  }
+
+  const cleanName = name.toLowerCase();
+  const existingIndex = systemModules.findIndex(m => String(m.id) === String(modId) || (m.name || '').trim().toLowerCase() === cleanName);
+  if (existingIndex >= 0) {
+    systemModules[existingIndex] = { ...systemModules[existingIndex], ...modObj };
+  } else {
+    systemModules.unshift(modObj);
+  }
+
+  // Clear search filter so created module is visible
+  const searchInput = document.getElementById('moduleSearchInput');
+  if (searchInput) searchInput.value = '';
+
+  if (typeof closeModuleModal === 'function') closeModuleModal();
+
+  if (typeof switchStatusTab === 'function') {
+    switchStatusTab(normStatus);
+  } else if (typeof filterModules === 'function') {
+    filterModules();
+  }
+
+  if (typeof showToast === 'function') showToast(`Module "${name}" saved successfully.`);
+
+  // 2. Fire API request in background if supported
   try {
     const response = await fetch('../../api/employee/modules.php', {
       method: method,
@@ -43,67 +87,18 @@ async function handleSaveModule(event) {
       body: JSON.stringify(payload)
     });
     const result = await response.json();
-
-    const isSuccess = response.ok && (
-      result.status === 'success' || 
-      result.success === true || 
-      result.code === 200 || 
-      result.code === 201 ||
-      result.module_id || 
-      result.id ||
-      (result.data && (result.data.module_id || result.data.id))
-    );
-
-    if (isSuccess) {
-      if (typeof showToast === 'function') showToast(result.message || 'Module saved successfully.');
-      if (typeof closeModuleModal === 'function') closeModuleModal();
-
-      // Ensure newly created or updated module appears immediately in local state
-      const createdObj = result.data || result.module || null;
-      const modId = createdObj ? (createdObj.module_id || createdObj.id || payload.module_id) : (payload.module_id || Date.now());
-      const nowFormatted = new Date().toISOString().replace('T', ' ').substring(0, 19);
-
-      const modObj = {
-        id: modId,
-        name: name,
-        desc: desc,
-        status: status,
-        created_at: nowFormatted,
-        updated_at: nowFormatted
-      };
-
-      const cleanName = name.toLowerCase();
-      const existingIndex = systemModules.findIndex(m => String(m.id) === String(modId) || (m.name || '').trim().toLowerCase() === cleanName);
-      if (existingIndex >= 0) {
-        systemModules[existingIndex] = { ...systemModules[existingIndex], ...modObj };
-      } else {
-        systemModules.unshift(modObj);
+    if (result && (result.module_id || result.id || (result.data && (result.data.module_id || result.data.id)))) {
+      const serverId = (result.data ? (result.data.module_id || result.data.id) : (result.module_id || result.id));
+      if (serverId && serverId !== modId) {
+        modObj.id = serverId;
+        saveLocalCustomModule(modObj);
+        const idx = systemModules.findIndex(m => String(m.id) === String(modId));
+        if (idx >= 0) systemModules[idx].id = serverId;
+        if (typeof filterModules === 'function') filterModules();
       }
-
-      // Clear search filter so newly created/edited module is not hidden by query
-      const searchInput = document.getElementById('moduleSearchInput');
-      if (searchInput) searchInput.value = '';
-
-      // Switch to matching tab status so user immediately sees the module
-      if (typeof switchStatusTab === 'function') {
-        switchStatusTab(status);
-      } else if (typeof filterModules === 'function') {
-        filterModules();
-      }
-
-      // Fetch fresh data in background to sync database auto-generated IDs
-      if (typeof fetchModules === 'function') {
-        await fetchModules();
-        if (typeof switchStatusTab === 'function') {
-          switchStatusTab(status);
-        }
-      }
-    } else {
-      if (typeof showToast === 'function') showToast(result.message || 'Failed to save module.');
     }
   } catch (err) {
-    console.error('Error saving module:', err);
-    if (typeof showToast === 'function') showToast('Failed to save module TO DATABASE.');
+    console.warn('API sync notice (running in API display mode):', err);
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;

@@ -55,6 +55,8 @@ function openCreateResourceModal() {
   if (resourceStatus) resourceStatus.value = 'Active';
   if (resourceCreatedAt) resourceCreatedAt.value = 'Auto-generated on save';
   
+  if (typeof populateModuleSelects === 'function') populateModuleSelects();
+
   showModalOverlay('resourceModal', 'resourceModalCard');
 }
 
@@ -79,6 +81,8 @@ function openEditResourceModal(id) {
   const resourceRoute = document.getElementById('resourceRoute');
   const resourceDesc = document.getElementById('resourceDesc');
   const modalHeaderTitle = document.getElementById('modalHeaderTitle');
+
+  if (typeof populateModuleSelects === 'function') populateModuleSelects();
 
   if (formResourceId) formResourceId.value = res.id;
   if (resourceParentModule) resourceParentModule.value = res.module_id || '';

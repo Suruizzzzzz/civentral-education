@@ -129,7 +129,9 @@ include '../../includes/sidebar.php';
             <tr class="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
               <th class="px-6 py-4">Module Name</th>
               <th class="px-6 py-4">Description</th>
-              <th class="px-6 py-4">Status</th>
+              <th class="px-6 py-4 text-center">Status</th>
+              <th class="px-6 py-4">Created At</th>
+              <th class="px-6 py-4">Updated At</th>
               <th class="px-6 py-4 text-right">Actions</th>
             </tr>
           </thead>

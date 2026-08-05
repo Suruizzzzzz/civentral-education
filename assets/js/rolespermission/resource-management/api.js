@@ -63,15 +63,75 @@ async function fetchResources() {
   }
 }
 
+function getCombinedSystemModules() {
+  const modMap = new Map();
+
+  // 1. Local custom modules from localStorage
+  try {
+    const stored = localStorage.getItem('civentral_custom_modules');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        parsed.forEach(m => {
+          const mId = m.module_id || m.id;
+          const mName = m.module_name || m.name;
+          const mStatus = m.status || 'Active';
+          if (mName) {
+            const modObj = { module_id: mId, id: mId, module_name: mName, name: mName, status: mStatus };
+            modMap.set(String(mId), modObj);
+            modMap.set(mName.trim().toLowerCase(), modObj);
+          }
+        });
+      }
+    }
+  } catch (e) {}
+
+  // 2. Global systemModules array if available
+  if (typeof systemModules !== 'undefined' && Array.isArray(systemModules)) {
+    systemModules.forEach(m => {
+      const mId = m.module_id || m.id;
+      const mName = m.module_name || m.name;
+      const mStatus = m.status || 'Active';
+      if (mName) {
+        const modObj = { module_id: mId, id: mId, module_name: mName, name: mName, status: mStatus };
+        modMap.set(String(mId), modObj);
+        modMap.set(mName.trim().toLowerCase(), modObj);
+      }
+    });
+  }
+
+  // 3. API systemModulesList
+  if (Array.isArray(systemModulesList)) {
+    systemModulesList.forEach(m => {
+      const mId = m.module_id || m.id;
+      const mName = m.module_name || m.name;
+      const mStatus = m.status || 'Active';
+      if (mName) {
+        const modObj = { module_id: mId, id: mId, module_name: mName, name: mName, status: mStatus };
+        const existing = modMap.get(String(mId)) || modMap.get(mName.trim().toLowerCase());
+        if (!existing) {
+          modMap.set(String(mId), modObj);
+          modMap.set(mName.trim().toLowerCase(), modObj);
+        }
+      }
+    });
+  }
+
+  return Array.from(new Set(modMap.values()));
+}
+window.getCombinedSystemModules = getCombinedSystemModules;
+
 // DYNAMICALLY POPULATE PARENT MODULE SELECT DROPDOWNS
 function populateModuleSelects() {
   const filterSelect = document.getElementById('parentModuleFilter');
   const modalSelect = document.getElementById('resourceParentModule');
 
+  const combinedModules = getCombinedSystemModules();
+
   if (filterSelect) {
     const curVal = filterSelect.value || 'ALL';
     let optionsHtml = '<option value="ALL">All Parent Modules</option>';
-    systemModulesList.forEach(m => {
+    combinedModules.forEach(m => {
       const mId = m.module_id || m.id;
       const mName = m.module_name || m.name || 'Unassigned Module';
       optionsHtml += `<option value="${mId}">${mName}</option>`;
@@ -82,8 +142,8 @@ function populateModuleSelects() {
 
   if (modalSelect) {
     const curVal = modalSelect.value;
-    let optionsHtml = '';
-    systemModulesList.forEach(m => {
+    let optionsHtml = '<option value="" disabled selected>Select Parent Module...</option>';
+    combinedModules.forEach(m => {
       const isArchived = (m.status || '').toString().trim().toLowerCase() === 'archived';
       if (isArchived) return; // Exclude archived modules from parent module selection modal
 

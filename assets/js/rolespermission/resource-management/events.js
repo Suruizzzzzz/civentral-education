@@ -29,10 +29,11 @@ async function handleSaveResource(event) {
     return;
   }
 
-  const parentMod = (typeof systemModulesList !== 'undefined' && Array.isArray(systemModulesList))
-    ? systemModulesList.find(m => String(m.module_id || m.id) === String(moduleId))
-    : null;
-  const parentModuleName = parentMod ? (parentMod.module_name || parentMod.name) : 'Unassigned';
+  const allMods = (typeof getCombinedSystemModules === 'function') 
+    ? getCombinedSystemModules() 
+    : ((typeof systemModulesList !== 'undefined' && Array.isArray(systemModulesList)) ? systemModulesList : []);
+  const parentMod = allMods.find(m => String(m.module_id || m.id) === String(moduleId) || (m.module_name || m.name || '').trim().toLowerCase() === String(moduleId).trim().toLowerCase());
+  const parentModuleName = parentMod ? (parentMod.module_name || parentMod.name) : (isNaN(moduleId) ? moduleId : 'Unassigned');
 
   const payload = {
     module_id: parseInt(moduleId) || moduleId,

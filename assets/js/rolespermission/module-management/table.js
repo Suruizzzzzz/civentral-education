@@ -45,7 +45,7 @@ function renderModulesTable(dataToRender = systemModules) {
 
     // Status Badge HTML
     let statusBadgeHtml = '';
-    const mStatus = mod.status || 'Active';
+    const mStatus = typeof normalizeStatus === 'function' ? normalizeStatus(mod.status) : (mod.status || 'Active');
     if (mStatus === 'Active') {
       statusBadgeHtml = `
         <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -194,9 +194,10 @@ function updateMetrics() {
 
   if (totalEl) totalEl.textContent = systemModules.length;
   
-  const activeCount = systemModules.filter(m => (m.status || 'Active') === 'Active').length;
-  const inactiveCount = systemModules.filter(m => (m.status || '').toLowerCase() === 'inactive').length;
-  const archivedCount = systemModules.filter(m => (m.status || '').toLowerCase() === 'archived').length;
+  const getNormStatus = m => (typeof normalizeStatus === 'function' ? normalizeStatus(m.status) : (m.status || 'Active'));
+  const activeCount = systemModules.filter(m => getNormStatus(m) === 'Active').length;
+  const inactiveCount = systemModules.filter(m => getNormStatus(m) === 'Inactive').length;
+  const archivedCount = systemModules.filter(m => getNormStatus(m) === 'Archived').length;
 
   if (activeEl) activeEl.textContent = activeCount;
   if (inactiveEl) inactiveEl.textContent = inactiveCount + archivedCount;

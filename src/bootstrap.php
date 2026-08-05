@@ -8,10 +8,22 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Load Database Config
-$configPath = __DIR__ . '/../config/database.php';
-if (file_exists($configPath)) {
-    require_once $configPath;
+// Load .env variables (no local database connection — all data comes from the remote API)
+$envPath = __DIR__ . '/../.env';
+if (file_exists($envPath)) {
+    $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if (empty($line) || strpos($line, '#') === 0 || strpos($line, '=') === false) continue;
+        list($name, $value) = explode('=', $line, 2);
+        $name = trim($name);
+        $value = trim($value, " \t\n\r\0\x0B\"'");
+        if (!array_key_exists($name, $_SERVER) && !array_key_exists($name, $_ENV)) {
+            putenv("{$name}={$value}");
+            $_ENV[$name] = $value;
+            $_SERVER[$name] = $value;
+        }
+    }
 }
 
 // Load Repositories
@@ -37,10 +49,9 @@ $currentBasePath = $basePath ?? '../';
 $sessionTimeout = new \App\Middleware\SessionTimeout(1800, $currentBasePath);
 $sessionTimeout->handle();
 
-// Initialize Repositories
-// Note: $db is expected to be initialized by config/database.php
-$userRepo = new \App\Repositories\UserRepository($db ?? null);
-$permRepo = new \App\Repositories\PermissionRepository($db ?? null);
+// Initialize Repositories (no local DB — they use the remote API via session cache)
+$userRepo = new \App\Repositories\UserRepository(null);
+$permRepo = new \App\Repositories\PermissionRepository(null);
 
 // Initialize Services
 $userService = new \App\Services\UserService($userRepo);

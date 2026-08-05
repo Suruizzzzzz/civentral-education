@@ -2,39 +2,60 @@
 
 namespace App\Repositories;
 
+/**
+ * UserRepository
+ *
+ * Retrieves user details from the remote API via session cache or proxy request.
+ * No local database connection is used — all data comes from https://civentral.tech/api/employee.
+ */
 class UserRepository
 {
-    private $db;
-
-    public function __construct($db)
+    public function __construct($db = null)
     {
-        $this->db = $db;
+        // $db is intentionally unused — this repository uses the remote API only.
     }
 
     public function getUserWithRelations($userId, $employeeId = null)
     {
-        $sql = "
-            SELECT 
-                u.*,
-                r.role_name, r.role_prefix, r.is_global_access, r.is_superadmin, r.department_id AS role_dept_id,
-                p.position_name, p.department_id,
-                d.department_name, d.department_code
-            FROM users u
-            LEFT JOIN roles r ON u.role_id = r.role_id
-            LEFT JOIN positions p ON u.position_id = p.position_id
-            LEFT JOIN departments d ON p.department_id = d.department_id
-            WHERE ";
-            
-        $params = [];
-        if ($userId) {
-            $sql .= "u.user_id = :id";
-            $params['id'] = $userId;
-        } else {
-            $sql .= "u.employee_id = :id";
-            $params['id'] = $employeeId;
+        // 1. Return from session cache if available (populated by verify-otp.php after login)
+        if (!empty($_SESSION['current_user_details'])) {
+            return $_SESSION['current_user_details'];
         }
 
-        $results = $this->db->query($sql, $params);
-        return !empty($results) ? $results[0] : null;
+        // 2. Fetch from remote API via get-profile.php proxy
+        $configPath = __DIR__ . '/../../config/proxy.php';
+        if (!function_exists('proxyRequest') && file_exists($configPath)) {
+            require_once $configPath;
+        }
+
+        if (!function_exists('proxyRequest')) {
+            return null;
+        }
+
+        $apiBaseUrl = getenv('EXPO_PUBLIC_API_BASE_URL') ?: 'https://civentral.tech/api/employee';
+        $profileUrl = rtrim($apiBaseUrl, '/') . '/get-profile.php';
+
+        $result = proxyRequest($profileUrl, 'GET', null);
+
+        if (!empty($result['body']) && $result['code'] === 200) {
+            $body = $result['body'];
+            $data = null;
+
+            if (isset($body['data']) && is_array($body['data'])) {
+                $data = $body['data'];
+            } elseif (isset($body['user']) && is_array($body['user'])) {
+                $data = $body['user'];
+            } elseif (isset($body['status']) && $body['status'] === 'success' && is_array($body)) {
+                // Flatten: try the root body as user data
+                $data = $body;
+            }
+
+            if ($data) {
+                $_SESSION['current_user_details'] = $data;
+                return $data;
+            }
+        }
+
+        return null;
     }
 }

@@ -32,8 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once __DIR__ . '/../../config/database.php';
-require_once __DIR__ . '/../../config/mailer.php';
+require_once __DIR__ . '/../../config/proxy.php';
 
 // Response Helper
 function respond(array $payload, int $statusCode = 200): void {
@@ -112,8 +111,6 @@ if (strtolower($employeeIdOrEmail) === 'maintenance') {
         'message' => 'System maintenance is scheduled for Sunday, 11:00 PM–1:00 AM. Save drafts before then.'
     ], 503);
 }
-
-require_once __DIR__ . '/../../config/proxy.php';
 
 $apiBaseUrl = getenv('EXPO_PUBLIC_API_BASE_URL') ?: 'https://civentral.tech/api/employee';
 $remoteUrl = rtrim($apiBaseUrl, '/') . '/login.php';

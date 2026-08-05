@@ -30,7 +30,7 @@ function respond(array $payload, int $statusCode = 200): void {
     exit;
 }
 $method = $_SERVER['REQUEST_METHOD'];
-$apiBaseUrl = 'https://civentral.tech/api/citizen';
+$apiBaseUrl = getenv('API_BASE_URL_CITIZEN') ?: 'https://civentral.tech/api/citizen';
 $fileName = basename(__FILE__);
 $queryString = $_SERVER['QUERY_STRING'] ?? '';
 $remoteUrl = rtrim($apiBaseUrl, '/') . '/' . $fileName . ($queryString !== '' ? '?' . $queryString : '');

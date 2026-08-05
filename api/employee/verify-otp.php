@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../config/proxy.php';
 
 // Response Helper
 function respond(array $payload, int $statusCode = 200): void {
@@ -53,7 +53,6 @@ if ($method !== 'POST') {
 $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
 $otpCode = trim($input['otp'] ?? $input['otp_code'] ?? '');
 
-require_once __DIR__ . '/../../config/proxy.php';
 
 if (empty($otpCode)) {
     respond([

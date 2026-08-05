@@ -13,8 +13,9 @@ function proxyRequest($url, $method = 'POST', $body = null, $sendCookie = true) 
         'Content-Type: application/json'
     ];
     
-    if ($sendCookie && !empty($_SESSION['remote_phpsessid'])) {
-        $headers[] = 'Cookie: PHPSESSID=' . $_SESSION['remote_phpsessid'];
+    $remoteSessId = $_SESSION['remote_phpsessid'] ?? $_COOKIE['remote_phpsessid'] ?? $_COOKIE['PHPSESSID'] ?? null;
+    if ($sendCookie && !empty($remoteSessId)) {
+        $headers[] = 'Cookie: PHPSESSID=' . $remoteSessId;
     }
     
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
