@@ -5,30 +5,41 @@ let citizenToastTimer = null;
 function showToast(message, isError = false) {
   const toast = document.getElementById('toast');
   const toastMsg = document.getElementById('toastMsg');
-  const iconBox = document.getElementById('toastIconBox');
-  const iconSymbol = document.getElementById('toastIconSymbol');
+  let iconBox = document.getElementById('toastIconBox') || (toast ? toast.querySelector('div') : null);
+  let iconSymbol = document.getElementById('toastIconSymbol') || (iconBox ? iconBox.querySelector('i') : null);
   
   if (!toast || !toastMsg) return;
 
-  const msgLower = message.toLowerCase();
-  if (!isError && (msgLower.includes('error') || msgLower.includes('failed') || msgLower.includes('invalid') || msgLower.includes('network') || msgLower.includes('require') || msgLower.includes('please'))) {
+  const msgLower = (message || '').toString().toLowerCase();
+  if (!isError && (
+    msgLower.includes('error') || 
+    msgLower.includes('failed') || 
+    msgLower.includes('invalid') || 
+    msgLower.includes('network') || 
+    msgLower.includes('require') || 
+    msgLower.includes('forbidden') || 
+    msgLower.includes('denied') || 
+    msgLower.includes('cannot') ||
+    msgLower.includes('unable') ||
+    msgLower.includes('please')
+  )) {
     isError = true;
   }
 
   toastMsg.innerText = message;
-  
-  if (isError) {
-      toast.classList.replace('bg-emerald-500', 'bg-rose-500');
-  } else {
-      toast.classList.replace('bg-rose-500', 'bg-emerald-500');
+
+  if (iconBox) {
+    if (isError) {
+      iconBox.className = "h-5 w-5 rounded-full bg-rose-500 flex items-center justify-center text-white text-[10px] shrink-0";
+    } else {
+      iconBox.className = "h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[10px] shrink-0";
+    }
   }
 
-  if (iconBox && iconSymbol) {
+  if (iconSymbol) {
     if (isError) {
-      iconBox.className = "h-5 w-5 rounded-full bg-rose-500 flex items-center justify-center text-white text-[10px]";
       iconSymbol.className = "fa-solid fa-xmark";
     } else {
-      iconBox.className = "h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[10px]";
       iconSymbol.className = "fa-solid fa-check";
     }
   }

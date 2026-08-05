@@ -23,7 +23,22 @@ function showToast(message, type = 'success', subtitle = '') {
 
   if (!toast || !toastMsg) return;
 
-  if (sharedToastTimer) clearTimeout(sharedToastTimer);
+  if (typeof type === 'boolean') {
+    type = type ? 'error' : 'success';
+  }
+
+  const msgLower = (message || '').toString().toLowerCase();
+  if (type !== 'error' && (
+    msgLower.includes('error') || 
+    msgLower.includes('failed') || 
+    msgLower.includes('invalid') || 
+    msgLower.includes('network') || 
+    msgLower.includes('require') || 
+    msgLower.includes('forbidden') || 
+    msgLower.includes('denied')
+  )) {
+    type = 'error';
+  }
 
   const configs = {
     success: { iconClass: 'fa-check', iconBg: 'bg-emerald-500' },
