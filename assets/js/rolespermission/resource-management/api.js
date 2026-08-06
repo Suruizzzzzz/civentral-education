@@ -2,17 +2,36 @@
 
 var systemResources = [];
 var systemModulesList = [];
+var systemActionVerbsList = [];
 var currentUserScope = null;
 var archiveTargetResourceId = null;
+
+window.systemActionVerbsList = systemActionVerbsList;
 
 // Clear legacy local storage keys
 try {
   localStorage.removeItem('civentral_custom_resources');
 } catch (e) {}
 
+// FETCH ACTION VERBS FROM ACTION MANAGEMENT API
+async function fetchActionVerbsList() {
+  try {
+    const res = await fetch('../../api/employee/actions.php');
+    const resData = await res.json();
+    if ((resData.status === 'success' || resData.success || res.ok) && Array.isArray(resData.data) && resData.data.length > 0) {
+      systemActionVerbsList = resData.data.filter(a => (a.status || '').toLowerCase() !== 'archived');
+      window.systemActionVerbsList = systemActionVerbsList;
+    }
+  } catch (err) {
+    console.error('Error fetching action verbs:', err);
+  }
+}
+window.fetchActionVerbsList = fetchActionVerbsList;
+
 // FETCH RESOURCES AND MODULES FROM Database API
 async function fetchResources() {
   try {
+    await fetchActionVerbsList();
     const response = await fetch('../../api/employee/resources.php');
     if (!response.ok) {
       console.warn('Fetch resources response HTTP status:', response.status);
@@ -22,6 +41,11 @@ async function fetchResources() {
       currentUserScope = result.current_user || currentUserScope || null;
       systemModulesList = Array.isArray(result.modules) ? result.modules : [];
       populateModuleSelects();
+
+      if (Array.isArray(result.actions) && result.actions.length > 0) {
+        systemActionVerbsList = result.actions;
+        window.systemActionVerbsList = systemActionVerbsList;
+      }
 
       if (Array.isArray(result.data)) {
         systemResources = result.data.map(r => {
@@ -34,6 +58,7 @@ async function fetchResources() {
             route: r.resource_route || '',
             desc: r.description || '',
             status: r.status || 'Active',
+            action_ids: Array.isArray(r.action_ids) ? r.action_ids : [],
             created_at: r.created_at ? r.created_at.replace('T', ' ').substring(0, 19) : '',
             updated_at: r.updated_at ? r.updated_at.replace('T', ' ').substring(0, 19) : ''
           };

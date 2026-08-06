@@ -57,6 +57,8 @@ function openCreateResourceModal() {
   
   if (typeof populateModuleSelects === 'function') populateModuleSelects();
 
+  renderActionCheckboxes(null);
+
   showModalOverlay('resourceModal', 'resourceModalCard');
 }
 
@@ -94,7 +96,106 @@ function openEditResourceModal(id) {
 
   if (modalHeaderTitle) modalHeaderTitle.textContent = `Edit Resource: ${res.name}`;
 
+  renderActionCheckboxes(res.action_ids || null);
+
   showModalOverlay('resourceModal', 'resourceModalCard');
+}
+
+function renderActionCheckboxes(selectedActionIds = null) {
+  const container = document.getElementById('actionCheckboxesContainer');
+  if (!container) return;
+
+  let actions = (window.systemActionVerbsList && window.systemActionVerbsList.length > 0) 
+    ? window.systemActionVerbsList 
+    : ((typeof systemActionVerbsList !== 'undefined' && systemActionVerbsList.length > 0) ? systemActionVerbsList : []);
+
+  if (!actions || actions.length === 0) {
+    actions = [
+      { action_id: 1, action_name: 'View', description: 'View resource data' },
+      { action_id: 2, action_name: 'Create', description: 'Create new resource records' },
+      { action_id: 3, action_name: 'Edit', description: 'Modify existing resource records' },
+      { action_id: 4, action_name: 'Delete', description: 'Remove resource records' },
+      { action_id: 5, action_name: 'Export', description: 'Export resource data' },
+      { action_id: 6, action_name: 'Approve', description: 'Approve resource requests' },
+      { action_id: 7, action_name: 'Archive', description: 'Archive resource records' },
+      { action_id: 8, action_name: 'Restore', description: 'Restore archived resources' },
+      { action_id: 9, action_name: 'Reject', description: 'Reject resource requests' }
+    ];
+  }
+
+  const isDefaultNew = selectedActionIds === null;
+  const crudNames = ['VIEW', 'CREATE', 'EDIT', 'DELETE'];
+
+  let html = '';
+  actions.forEach(act => {
+    const actId = parseInt(act.action_id || act.id);
+    const actNameUpper = (act.action_name || act.name || '').toUpperCase().trim();
+    
+    let isChecked = false;
+    if (isDefaultNew) {
+      isChecked = crudNames.includes(actNameUpper);
+    } else if (Array.isArray(selectedActionIds)) {
+      isChecked = selectedActionIds.includes(actId) || selectedActionIds.includes(actNameUpper);
+    }
+
+    const badgeColorMap = {
+      'VIEW': 'bg-blue-50 text-blue-700 border-blue-200',
+      'CREATE': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      'EDIT': 'bg-amber-50 text-amber-700 border-amber-200',
+      'DELETE': 'bg-rose-50 text-rose-700 border-rose-200',
+      'EXPORT': 'bg-purple-50 text-purple-700 border-purple-200',
+      'APPROVE': 'bg-teal-50 text-teal-700 border-teal-200',
+      'ARCHIVE': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      'RESTORE': 'bg-cyan-50 text-cyan-700 border-cyan-200',
+      'REJECT': 'bg-pink-50 text-pink-700 border-pink-200'
+    };
+
+    const badgeStyle = badgeColorMap[actNameUpper] || 'bg-slate-100 text-slate-700 border-slate-200';
+
+    html += `
+      <label class="flex items-center justify-between p-2.5 bg-white border border-slate-200 rounded-xl hover:border-brand-medium/50 hover:shadow-2xs transition cursor-pointer select-none group">
+        <div class="flex items-center gap-2.5 min-w-0 pr-1">
+          <input 
+            type="checkbox" 
+            value="${actId}" 
+            data-action-name="${actNameUpper}" 
+            ${isChecked ? 'checked' : ''} 
+            class="resource-action-checkbox h-4 w-4 rounded border-slate-300 text-brand-dark focus:ring-brand-dark/20 cursor-pointer"
+          >
+          <div class="min-w-0">
+            <span class="text-xs font-bold text-slate-800 tracking-tight block truncate">${act.action_name || act.name}</span>
+            ${act.description ? `<span class="text-[9.5px] text-slate-400 font-medium block truncate" title="${act.description}">${act.description}</span>` : ''}
+          </div>
+        </div>
+        <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${badgeStyle} shrink-0">
+          ${actNameUpper}
+        </span>
+      </label>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+function applyActionHelper(type) {
+  const checkboxes = document.querySelectorAll('.resource-action-checkbox');
+  if (!checkboxes || checkboxes.length === 0) return;
+
+  const crudNames = ['VIEW', 'CREATE', 'EDIT', 'DELETE'];
+
+  checkboxes.forEach(cb => {
+    const nameUpper = (cb.getAttribute('data-action-name') || '').toUpperCase().trim();
+
+    if (type === 'crud') {
+      cb.checked = crudNames.includes(nameUpper);
+    } else if (type === 'read_only') {
+      cb.checked = (nameUpper === 'VIEW');
+    } else if (type === 'select_all') {
+      cb.checked = true;
+    } else if (type === 'clear_all') {
+      cb.checked = false;
+    }
+  });
 }
 
 function closeResourceModal() {
@@ -136,6 +237,8 @@ async function toggleResourceStatus(id) {
 window.openCreateResourceModal = openCreateResourceModal;
 window.openEditResourceModal = openEditResourceModal;
 window.closeResourceModal = closeResourceModal;
+window.renderActionCheckboxes = renderActionCheckboxes;
+window.applyActionHelper = applyActionHelper;
 window.openArchiveResourceModal = openArchiveResourceModal;
 window.closeArchiveModal = closeArchiveModal;
 window.confirmArchiveResource = confirmArchiveResource;

@@ -35,12 +35,17 @@ async function handleSaveResource(event) {
   const parentMod = allMods.find(m => String(m.module_id || m.id) === String(moduleId) || (m.module_name || m.name || '').trim().toLowerCase() === String(moduleId).trim().toLowerCase());
   const parentModuleName = parentMod ? (parentMod.module_name || parentMod.name) : (isNaN(moduleId) ? moduleId : 'Unassigned');
 
+  const selectedActionIds = Array.from(document.querySelectorAll('.resource-action-checkbox:checked'))
+    .map(cb => parseInt(cb.value))
+    .filter(val => !isNaN(val));
+
   const payload = {
     module_id: parseInt(moduleId) || moduleId,
     resource_name: name,
     resource_route: route,
     description: desc,
-    status: status
+    status: status,
+    actions: selectedActionIds
   };
 
   if (idVal !== '') {
@@ -69,6 +74,7 @@ async function handleSaveResource(event) {
       route: route,
       desc: desc,
       status: status,
+      action_ids: selectedActionIds,
       created_at: nowFormatted,
       updated_at: nowFormatted
     };
